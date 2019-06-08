@@ -27,16 +27,16 @@ definition(
 
 preferences {
 	section("Turn on these lights...") {
-		input "switches1", "capability.switch", multiple: true
+		input "switches", "capability.switch", multiple: true
 	}
 	section("When there's movement...") {
-		input "motionSensor1", "capability.motionSensor", title: "Where?"
+		input "motionSensor", "capability.motionSensor", title: "Where?"
 	}
  	section("And low light is measured here") {
-		input "luxSensor1", "capability.illuminanceMeasurement", multiple: false
+		input "luxSensor", "capability.illuminanceMeasurement", multiple: false
 	}   
 	section("And off when there's been no movement for...") {
-		input "minutes1", "number", title: "Minutes?"
+		input "minutes", "number", title: "Minutes?"
 	}
 }
 
@@ -56,8 +56,8 @@ def updated() {
 
 def initialize() {
 	log.debug "Initialising..."
-	subscribe(motionSensor1, "motion", motionHandler)
-	subscribe(luxSensor1, "illuminance", luxHandler)  
+	subscribe(motionSensor, "motion", motionHandler)
+	subscribe(luxSensor, "illuminance", luxHandler)  
     log.debug "Initialising...Done"
 }
 
@@ -65,14 +65,15 @@ def motionHandler(evt) {
 	log.debug "$evt.name: $evt.value"
 	if (evt.value == "active" && lightingIsNeeded()) {     
 		log.debug "turning on lights"
-		switches1.on()
+		switches.on()
 	} else if (evt.value == "inactive") {
-		runIn(minutes1 * 60, scheduleCheck, [overwrite: false])
+    	log.debug "lights will turn off in $minutes mins"
+		runIn(minutes * 60, scheduleCheck)
 	}
 }
 
 def lightingIsNeeded() {
- 	def currentLuxValue = luxSensor1.currentValue("illuminance")
+ 	def currentLuxValue = luxSensor.currentValue("illuminance")
 
     log.debug "Current Lux Level is $currentLuxValue"
     
@@ -85,19 +86,19 @@ def lightingIsNeeded() {
 def luxHandler(evt) {
 	if (!lightingIsNeeded()) {
     	log.debug "turning off lights"
-    	switches1.off()
+    	switches.off()
     }
 }
 
 def scheduleCheck() {
 	log.debug "schedule check"
-	def motionState = motion1.currentState("motion")
+	def motionState = motionSensor.currentState("motion")
     if (motionState.value == "inactive") {
         def elapsed = now() - motionState.rawDateCreated.time
-    	def threshold = 1000 * 60 * minutes1 - 1000
+    	def threshold = 1000 * 60 * minutes - 1000
     	if (elapsed >= threshold) {
             log.debug "Motion has stayed inactive long enough since last check ($elapsed ms):  turning lights off"
-            switches1.off()
+            switches.off()
     	} else {
         	log.debug "Motion has not stayed inactive long enough since last check ($elapsed ms):  doing nothing"
         }
