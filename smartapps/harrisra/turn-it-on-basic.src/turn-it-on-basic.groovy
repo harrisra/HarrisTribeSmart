@@ -24,11 +24,18 @@ definition(
     iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
 
 
+
+
 preferences {
-	section("Title") {
-		// TODO: put inputs here
+	section("When the door opens/closes...") {
+		input "contact1", "capability.contactSensor", title: "Where?"
+	}
+	section("Turn on/off a light...") {
+		input "switch1", "capability.switch",
+        	multiple: true
 	}
 }
+
 
 def installed() {
 	log.debug "Installed with settings: ${settings}"
@@ -45,6 +52,14 @@ def updated() {
 
 def initialize() {
 	// TODO: subscribe to attributes, devices, locations, etc.
+    subscribe(contact1, "contact", contactHandler)
 }
 
-// TODO: implement event handlers
+def contactHandler(evt) {
+	log.debug "$evt.value"
+	if (evt.value == "open") {
+		switch1.on()
+	} else if (evt.value == "closed") {
+		switch1.off()
+	}
+}
