@@ -23,86 +23,31 @@ definition(
     iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png",
     iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
 
-
-
 preferences {
-	section("Turn on these lights...") {
-		input "switches", "capability.switch", multiple: true
-	}
-	section("When there's movement...") {
-		input "motionSensor", "capability.motionSensor", title: "Where?"
-	}
- 	section("And low light is measured here") {
-		input "luxSensor", "capability.illuminanceMeasurement", multiple: false
-	}   
-	section("And off when there's been no movement for...") {
-		input "minutes", "number", title: "Minutes?"
-	}
-}
-
-
-def installed() {
-	log.debug "Installed with settings: ${settings}"
-
-	initialize()
-}
-
-def updated() {
-	log.debug "Updated with settings: ${settings}"
-
-	unsubscribe()
-	initialize()
-}
-
-def initialize() {
-	log.debug "Initialising..."
-	subscribe(motionSensor, "motion", motionHandler)
-	subscribe(luxSensor, "illuminance", luxHandler)  
-    log.debug "Initialising...Done"
-}
-
-def motionHandler(evt) {
-	log.debug "$evt.name: $evt.value"
-	if (evt.value == "active" && lightingIsNeeded()) {     
-		log.debug "turning on lights"
-		switches.on()
-	} else if (evt.value == "inactive") {
-    	log.debug "lights will turn off in $minutes mins"
-		runIn(minutes * 60, scheduleCheck)
-	}
-}
-
-def lightingIsNeeded() {
- 	def currentLuxValue = luxSensor.currentValue("illuminance")
-
-    log.debug "Current Lux Level is $currentLuxValue"
-    
-	if (currentLuxValue < 1000) 
-		return true
-    else 
-    	return false
-}
-
-def luxHandler(evt) {
-	if (!lightingIsNeeded()) {
-    	log.debug "turning off lights"
-    	switches.off()
+    // The parent app preferences are pretty simple: just use the app input for the child app.
+    page(name: "mainPage", title: "Smart Lighting Automations", install: true, uninstall: true,submitOnChange: true) {
+        section {
+            app(name: "harrisTribeSmartLights", appName: "HarrisTribe Smart Lights", namespace: "harrisra", title: "Create New Smart Lighting Automation", multiple: true)
+            }
     }
 }
 
-def scheduleCheck() {
-	log.debug "schedule check"
-	def motionState = motionSensor.currentState("motion")
-    if (motionState.value == "inactive") {
-        def elapsed = now() - motionState.rawDateCreated.time
-    	def threshold = 1000 * 60 * minutes - 1000
-    	if (elapsed >= threshold) {
-            log.debug "Motion has stayed inactive long enough since last check ($elapsed ms):  turning lights off"
-            switches.off()
-    	} else {
-        	log.debug "Motion has not stayed inactive long enough since last check ($elapsed ms):  doing nothing"
-        }
-    } else {
-    	log.debug "Motion is active, do nothing and wait for inactive"
+def installed() {
+    log.debug "Installed with settings: ${settings}"
+    initialize()
+}
+
+def updated() {
+    log.debug "Updated with settings: ${settings}"
+    unsubscribe()
+    initialize()
+}
+
+def initialize() {
+    // nothing needed here, since the child apps will handle preferences/subscriptions
+    // this just logs some messages for demo/information purposes
+    log.debug "there are ${childApps.size()} child smartapps"
+    childApps.each {child ->
+        log.debug "child app: ${child.label}"
     }
 }
