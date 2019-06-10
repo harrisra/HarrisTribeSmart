@@ -19,6 +19,7 @@ definition(
     author: "Robert Harris",
     description: "Single automation for parent app HarrisTribe Smart Lighting",
     category: "My Apps",
+    parent: "harrisra:HarrisTribe Smart Lighting",
     iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
     iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png",
     iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
@@ -28,11 +29,11 @@ preferences {
 	section("Turn on these lights...") {
 		input "switches", "capability.switch", multiple: true
 	}
-	section("When there's movement...") {
+	section("When there's movement here...") {
 		input "motionSensor", "capability.motionSensor", title: "Where?"
 	}
  	section("And low light is measured here") {
-		input "luxSensor", "capability.illuminanceMeasurement", multiple: false
+		input "luxSensor", "capability.illuminanceMeasurement", required: false
 	}   
 	section("And off when there's been no movement for...") {
 		input "minutes", "number", title: "Minutes?"
@@ -72,14 +73,24 @@ def motionHandler(evt) {
 }
 
 def lightingIsNeeded() {
+
+    // only check for light levels if configured to do so
+    if (!luxSensor) {
+    	log.debug "No luxSensory configured so assuming that lighting is needed"
+    	return true
+    }
+    
+	// find last reported light level
  	def currentLuxValue = luxSensor.currentValue("illuminance")
 
-    log.debug "Current Lux Level is $currentLuxValue"
-    
-	if (currentLuxValue < 1000) 
+    // if its dark outside we need lights to turn
+	if (currentLuxValue < 1350) {
+    	log.debug "Current Lux Level is $currentLuxValue - lighting is needed"
 		return true
-    else 
+    } else { 
+    	log.debug "Current Lux Level is $currentLuxValue - lighting is not needed"
     	return false
+    }
 }
 
 def luxHandler(evt) {
